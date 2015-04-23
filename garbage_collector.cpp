@@ -1,4 +1,4 @@
-// A toy garbage collector for trivial types using RAII
+// A C++11 toy garbage collector for trivial types using RAII
 
 #include <iostream>
 #include <iomanip>
