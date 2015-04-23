@@ -1,8 +1,10 @@
 // A C++11 toy garbage collector for trivial types using RAII
 
+#include <cstddef>
 #include <iostream>
 #include <iomanip>
 #include <map>
+#include <utility>
 
 class GC // RAII Garbage Collector class for PODs
 {
