@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <map>
+#include <type_traits>
 #include <utility>
 
 class GC // RAII Garbage Collector class for PODs
