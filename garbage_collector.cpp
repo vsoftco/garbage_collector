@@ -1,4 +1,4 @@
-// A toy garbage collector for PODs using RAII
+// A toy garbage collector for trivial types using RAII
 
 #include <iostream>
 #include <iomanip>
@@ -32,34 +32,47 @@ void* operator new[](std::size_t size, const GC::collect_t&);
 void operator delete(void *p, const GC::collect_t&) noexcept;
 void operator delete[](void *p, const GC::collect_t&) noexcept;
 
+#define NEW new(GC::collect_t{}) // managed new
+
+struct Foo // a trivial class
+{
+    int x;
+    char buf[256];
+};
+
 int main() // Testing
 {
     GC gc; // RAII, calls GC::clear_memory() when out-of-scope
+    std::cout << "std::is_trivial<Foo>::value: " << std::boolalpha
+              << std::is_trivial<Foo>::value << std::endl;
 
     // use the garbage collector
-    char *c = new(GC::collect_t{}) char;
-    int *p = new(GC::collect_t{}) int[1024]; // true size: sizeof(int)*100 + y
+    char *c = NEW char;
+    int *p = NEW int[1024]; // true size: sizeof(int)*100 + y
+    Foo *pFoo = NEW Foo;
 
     // don't use the garbace collector
     int *tmp = new int;
 
-    std::cout << std::boolalpha << GC::is_managed(c) << std::endl;
-    std::cout << std::boolalpha << GC::is_managed(p) << std::endl;
-    std::cout << std::boolalpha << GC::is_managed(tmp) << std::endl;
+    std::cout << "GC::is_managed(): " << GC::is_managed(c) << std::endl;
+    std::cout << "GC::is_managed(): " << GC::is_managed(p) << std::endl;
+    std::cout << "GC::is_managed(): " << GC::is_managed(pFoo) << std::endl;
+    std::cout << "GC::is_managed(): " << GC::is_managed(tmp) << std::endl;
 
     GC::display_memory();
 
     GC::remove(c);
     GC::display_memory();
-    std::cout << std::boolalpha << GC::is_managed(c) << std::endl;
-    std::cout << std::boolalpha << GC::is_managed(p) << std::endl;
-    std::cout << std::boolalpha << GC::is_managed(tmp) << std::endl;
+    std::cout << "GC::is_managed(): " << GC::is_managed(c) << std::endl;
+    std::cout << "GC::is_managed(): " << GC::is_managed(p) << std::endl;
+    std::cout << "GC::is_managed(): " << GC::is_managed(pFoo) << std::endl;
+    std::cout << "GC::is_managed(): " << GC::is_managed(tmp) << std::endl;
 
     auto pair = GC::get(p);
     if (pair.first != 0 && pair.second != false) // element is managed
     {
-        std::cout << pair.first << " " << std::boolalpha
-                  << pair.second << std::endl;
+        std::cout << "GC::get(): " << pair.first
+                  << " -> " << pair.second << std::endl;
     }
 
     delete tmp;
@@ -77,8 +90,8 @@ void GC::display_memory()
                    << elem.first
                    << "\tSIZE: " << std::setw(8) << std::right
                    << elem.second.first
-                   << "\tARRAY: " << std::setw(8) << std::boolalpha
-                   << elem.second.second << std::endl;
+                   << "\tARRAY: " << std::setw(8) << elem.second.second
+                   << std::endl;
     }
 }
 
@@ -114,7 +127,7 @@ std::pair<std::size_t, bool> GC::get(void* p)
 
 GC::~GC()
 {
-    std::cout << "Releasing memory..." << std::endl;
+    std::cout << "GC::~GC() releasing memory" << std::endl;
     clear_memory();
     display_memory();
 }
