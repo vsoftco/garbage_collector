@@ -54,7 +54,7 @@ int main() // Testing
     int *p = NEW int[1024]; // true size: sizeof(int)*100 + y
     Foo *pFoo = NEW Foo;
 
-    // don't use the garbace collector
+    // don't use the garbage collector
     int *tmp = new int;
 
     std::cout << "GC::is_managed(): " << GC::is_managed(c) << std::endl;
