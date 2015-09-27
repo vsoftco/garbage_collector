@@ -24,7 +24,9 @@ public:
 // friends:
     friend void* operator new(std::size_t size, const GC::collect_t&,
                               bool is_array);
+    friend void* operator new[](std::size_t size, const GC::collect_t&);
     friend void operator delete(void *p, const GC::collect_t&) noexcept;
+    friend void operator delete[](void *p, const GC::collect_t&) noexcept;
 };
 std::map<void*, std::pair<std::size_t, bool>> GC::_memory; // ODR
 
@@ -144,7 +146,9 @@ void* operator new(std::size_t size, const GC::collect_t&, bool is_array)
 
 void* operator new[](std::size_t size, const GC::collect_t&)
 {
-    return operator new(size, GC::collect_t{}, true);
+    void* addr = ::operator new[](size);
+    GC::_memory[addr] = std::make_pair(size, true);
+    return addr;
 }
 
 void operator delete(void *p, const GC::collect_t&) noexcept
@@ -155,5 +159,6 @@ void operator delete(void *p, const GC::collect_t&) noexcept
 
 void operator delete[](void *p, const GC::collect_t&) noexcept
 {
-    operator delete(p, GC::collect_t{});
+    GC::_memory.erase(p); // should call ::operator delete, no recursion
+    ::operator delete[](p);
 }
