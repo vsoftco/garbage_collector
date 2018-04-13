@@ -66,7 +66,7 @@ int main() // Testing
 
     GC::display_memory();
 
-    GC::remove(c);
+    GC::remove(c); // remove it from the pool
     GC::display_memory();
     std::cout << "GC::is_managed(): " << GC::is_managed(c) << std::endl;
     std::cout << "GC::is_managed(): " << GC::is_managed(p) << std::endl;
@@ -80,7 +80,8 @@ int main() // Testing
                   << " -> " << pair.second << std::endl;
     }
 
-    delete tmp;
+    delete c;   // the one removed from the pool, so we don't leak memory
+    delete tmp; // the un-managed pointer
 }
 
 // Implementation
