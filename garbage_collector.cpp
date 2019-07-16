@@ -10,7 +10,7 @@
 class GC // RAII Garbage Collector class for PODs
 {
     // memory pool
-    static std::map<void*, std::pair<std::size_t, bool>> _memory;
+    static std::map<void*, std::pair<std::size_t, bool>> memory_;
 public:
     struct collect_t {}; // tag for placement new
     static void display_memory(); // displays the managed memory
@@ -22,17 +22,15 @@ public:
     static std::pair<std::size_t, bool> get(void* p);
     ~GC(); // clears the memory
 // friends:
-    friend void* operator new(std::size_t size, const GC::collect_t&,
-                              bool is_array);
+    friend void* operator new(std::size_t size, const GC::collect_t&);
     friend void* operator new[](std::size_t size, const GC::collect_t&);
     friend void operator delete(void *p, const GC::collect_t&) noexcept;
     friend void operator delete[](void *p, const GC::collect_t&) noexcept;
 };
-std::map<void*, std::pair<std::size_t, bool>> GC::_memory; // ODR
+std::map<void*, std::pair<std::size_t, bool>> GC::memory_; // ODR
 
 // tagged overloads
-void* operator new(std::size_t size, const GC::collect_t&,
-                   bool is_array = false);
+void* operator new(std::size_t size, const GC::collect_t&);
 void* operator new[](std::size_t size, const GC::collect_t&);
 void operator delete(void *p, const GC::collect_t&) noexcept;
 void operator delete[](void *p, const GC::collect_t&) noexcept;
@@ -89,7 +87,7 @@ int main() // Testing
 void GC::display_memory()
 {
     std::cout << "Allocated: " << std::endl;
-    for (auto && elem : _memory)
+    for (auto && elem : memory_)
     {
         std::cout  << std::setfill('.')
                    << "\tADDR: "  << std::setw(8)
@@ -103,30 +101,30 @@ void GC::display_memory()
 
 void GC::clear_memory()
 {
-    for (auto && elem : _memory)
+    for (auto && elem : memory_)
     {
         if (elem.second.second) // non-array
             operator delete(elem.first, GC::collect_t{});
         else
             operator delete[](elem.first, GC::collect_t{});
     }
-    _memory.clear();
+    memory_.clear();
 }
 
 bool GC::is_managed(void* p)
 {
-    return _memory.find(p) != _memory.end();
+    return memory_.find(p) != memory_.end();
 }
 
 void GC::remove(void *p)
 {
-    _memory.erase(p);
+    memory_.erase(p);
 }
 
 std::pair<std::size_t, bool> GC::get(void* p)
 {
     if (is_managed(p))
-        return _memory[p];
+        return memory_[p];
     else
         return std::make_pair(0, false);
 }
@@ -138,28 +136,28 @@ GC::~GC()
     display_memory();
 }
 
-void* operator new(std::size_t size, const GC::collect_t&, bool is_array)
+void* operator new(std::size_t size, const GC::collect_t&)
 {
     void* addr = ::operator new(size);
-    GC::_memory[addr] = std::make_pair(size, is_array);
+    GC::memory_[addr] = std::make_pair(size, false);
     return addr;
 }
 
 void* operator new[](std::size_t size, const GC::collect_t&)
 {
     void* addr = ::operator new[](size);
-    GC::_memory[addr] = std::make_pair(size, true);
+    GC::memory_[addr] = std::make_pair(size, true);
     return addr;
 }
 
 void operator delete(void *p, const GC::collect_t&) noexcept
 {
-    GC::_memory.erase(p); // should call ::operator delete, no recursion
+    GC::memory_.erase(p); // should call ::operator delete, no recursion
     ::operator delete(p);
 }
 
 void operator delete[](void *p, const GC::collect_t&) noexcept
 {
-    GC::_memory.erase(p); // should call ::operator delete, no recursion
+    GC::memory_.erase(p); // should call ::operator delete, no recursion
     ::operator delete[](p);
 }
